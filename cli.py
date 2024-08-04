@@ -1,19 +1,27 @@
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from colorama import Fore, Back, Style
 import requests
 import json
-import sys
+# import sys
 
 data = []
+
+config = ""
+# Params for API
+with open("config.json", "r") as c:
+    for line in c:
+        config += line.rstrip()
+    config = json.loads(config)
 
 # Define keywords for search
 keywords = []
 temp = json.loads(requests.get("https://techguy16.github.io/YTScamFinder/keywords/keywords.json").text)
 for item in temp["keywords"]:
     keywords.append(item)
-
-# Params for API
-DEVELOPER_KEY = sys.argv[1]
+    
+DEVELOPER_KEY = config["API_KEY"]
+print(f"{Style.BRIGHT}{Fore.GREEN}Using API Key: {Style.RESET_ALL}{DEVELOPER_KEY}")
 YOUTUBE_API_SERVICE_NAME = 'youtube'
 YOUTUBE_API_VERSION = 'v3'
 
@@ -44,10 +52,12 @@ def run_search(keyword):
 
 
 if __name__ == "__main__":
+    print(f"{Style.BRIGHT}{Fore.BLUE}Starting searches...{Style.RESET_ALL}")
     for item in keywords:
+        print(f"Searching query \"{Style.BRIGHT}{Fore.GREEN}{item}{Style.RESET_ALL}\"...")
         run_search(item)
     
-    csvData = "video id,description,\n"
+    csvData = ""
     for item in data:
         for item2 in item:
             csvData += item2 + ","
@@ -56,3 +66,5 @@ if __name__ == "__main__":
     with open("data.csv", "a+") as w:
         w.write(csvData)
         w.close()
+
+    print(f"Data saved to {Fore.MAGENTA}{Style.BRIGHT}data.csv{Style.RESET_ALL}.")
