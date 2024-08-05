@@ -1,38 +1,37 @@
 from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-from colorama import Fore, Back, Style
-import requests
-import json
-# import sys
+from colorama import Fore, Style
+import libscamfinder.keywords
+import argparse
+import re
 
 data = []
+extracted_links = []
 
-config = ""
-# Params for API
-with open("config.json", "r") as c:
-    for line in c:
-        config += line.rstrip()
-    config = json.loads(config)
-
-# Define keywords for search
-keywords = []
-temp = json.loads(requests.get("https://techguy16.github.io/YTScamFinder/keywords/keywords.json").text)
-for item in temp["keywords"]:
-    keywords.append(item)
+config = libscamfinder.keywords.get_config()
+keywords = libscamfinder.keywords.get_keywords()
     
 DEVELOPER_KEY = config["API_KEY"]
-print(f"{Style.BRIGHT}{Fore.GREEN}Using API Key: {Style.RESET_ALL}{DEVELOPER_KEY}")
+libscamfinder.check_key(DEVELOPER_KEY)
 YOUTUBE_API_SERVICE_NAME = 'youtube'
 YOUTUBE_API_VERSION = 'v3'
 
 # Get data from JSON
 def get_data(row):
-    global data
+    global data, extracted_links
     video_id = []
 
     video_id.append(row['id']['videoId'])
     video_id.append(row['snippet']['description'].replace(",", " "))
     
+    found_links = re.findall(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', row['snippet']['description'].replace(",", " "))
+    if not len(found_links) == 0:
+        print(f"{Style.BRIGHT}{Fore.GREEN}Links found in description: {Style.RESET_ALL}{len(found_links)}")
+        for item in found_links:
+            if not item in extracted_links:
+                extracted_links.append(item)
+    else:
+        print(f"{Style.BRIGHT}{Fore.RED}No links found in description.{Style.RESET_ALL}")
+        
     data.append(video_id)
 
 # Run search with given word
@@ -68,3 +67,16 @@ if __name__ == "__main__":
         w.close()
 
     print(f"Data saved to {Fore.MAGENTA}{Style.BRIGHT}data.csv{Style.RESET_ALL}.")
+    
+    csvData = ""
+    for item in extracted_links:
+        if item == extracted_links[-1]:
+            csvData += item
+        else:
+            csvData += item + ",\n"
+        
+    with open("links.csv", "a+") as w:
+        w.write(csvData)
+        w.close()
+        
+    print(f"Extracted links saved to {Fore.MAGENTA}{Style.BRIGHT}links.csv{Style.RESET_ALL}.")
