@@ -1,5 +1,4 @@
 {
     "API_KEY": "",
-    "_comment": "OPENAI_API_KEY is for future use, like using AI to detect scams",
     "OPENAI_API_KEY": ""
 }

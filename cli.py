@@ -7,11 +7,24 @@ import re
 data = []
 extracted_links = []
 
+parser = argparse.ArgumentParser()
+parser.add_argument("-v", "--verbose", help="Display verbose output", action="store_true")
+parser.add_argument("-k", "--apikey", help="Specifiy YouTube API key or override one from config", type=str)
+parser.add_argument("-w", "--keywords", help="Specifiy HTTP URL to load keywords from", type=str, default="https://techguy16.github.io/YTScamFinder/keywords/keywords.json")
+args = parser.parse_args()
+
+
 config = libscamfinder.keywords.get_config()
-keywords = libscamfinder.keywords.get_keywords()
-    
-DEVELOPER_KEY = config["API_KEY"]
-libscamfinder.check_key(DEVELOPER_KEY)
+keywords = libscamfinder.keywords.get_keywords(args.keywords)
+
+if args.apikey:
+    DEVELOPER_KEY = args.apikey
+    CONFIG_OR_ARGS = "ARGS"
+else:
+    DEVELOPER_KEY = config["API_KEY"]
+    CONFIG_OR_ARGS = "CONFIG"
+
+libscamfinder.check_key(DEVELOPER_KEY, CONFIG_OR_ARGS)
 YOUTUBE_API_SERVICE_NAME = 'youtube'
 YOUTUBE_API_VERSION = 'v3'
 
@@ -25,12 +38,17 @@ def get_data(row):
     
     found_links = re.findall(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', row['snippet']['description'].replace(",", " "))
     if not len(found_links) == 0:
-        print(f"{Style.BRIGHT}{Fore.GREEN}Links found in description: {Style.RESET_ALL}{len(found_links)}")
+        if args.verbose:
+            print(f"{Style.BRIGHT}{Fore.GREEN}Links found in description: {Style.RESET_ALL}{len(found_links)}")
         for item in found_links:
             if not item in extracted_links:
-                extracted_links.append(item)
+                if not item[-1] == ".":
+                    extracted_links.append(item)
+                else:
+                    extracted_links.append(item[:-1])
     else:
-        print(f"{Style.BRIGHT}{Fore.RED}No links found in description.{Style.RESET_ALL}")
+        if args.verbose:
+            print(f"{Style.BRIGHT}{Fore.RED}No links found in description.{Style.RESET_ALL}")
         
     data.append(video_id)
 
@@ -53,7 +71,7 @@ def run_search(keyword):
 if __name__ == "__main__":
     print(f"{Style.BRIGHT}{Fore.BLUE}Starting searches...{Style.RESET_ALL}")
     for item in keywords:
-        print(f"Searching query \"{Style.BRIGHT}{Fore.GREEN}{item}{Style.RESET_ALL}\"...")
+        print(f"Searching query {keywords.index(item) + 1}/{len(keywords)}...")
         run_search(item)
     
     csvData = ""
